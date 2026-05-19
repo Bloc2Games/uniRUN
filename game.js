@@ -883,6 +883,7 @@ function draw() {
     ctx.restore();
   });
 
+  if (playerImg.complete && playerImg.naturalWidth > 0) {
   const spriteWidth = playerImg.width / totalFrames;
 
   ctx.drawImage(
@@ -896,6 +897,10 @@ function draw() {
     player.width,
     player.height
   );
+} else {
+  ctx.fillStyle = "#00ffff";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+}
 
   obstacles.forEach(o => {
     safeDrawImage(o.image, o.x, o.y, o.width, o.height, "red");
