@@ -17,13 +17,17 @@ fiveCoinImg.src = "assets/fivecoin.png";
 const superchargeImg = new Image();
 superchargeImg.src = "assets/supercharge.png";
 
-const obstacleImages = [];
+const punkImg = new Image();
+punkImg.src = "assets/punk.png";
 
-for (let i = 1; i <= 5; i++) {
+const obstacleImages = [];
+const obstacleAssetNumbers = [1, 2, 3, 4, 5, 7, 8, 9];
+
+obstacleAssetNumbers.forEach(num => {
   const img = new Image();
-  img.src = `assets/obstacle${i}.png`;
+  img.src = `assets/obstacle${num}.png`;
   obstacleImages.push(img);
-}
+});
 
 
 // =========================
@@ -47,11 +51,11 @@ levelUpSound.volume = 0.6;
 
 const footstepSound = new Audio("assets/footsteps.mp3");
 footstepSound.loop = true;
-footstepSound.volume = 0.25;
+footstepSound.volume = 0.2;
 
 const music = new Audio("assets/music.mp3");
 music.loop = true;
-music.volume = 0.25;
+music.volume = 0.22;
 
 let musicStarted = false;
 
@@ -105,12 +109,12 @@ const isMobile =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
   window.innerWidth < 768;
 
-const STAR_COUNT = isMobile ? 35 : 80;
-const TRAIL_SIZE = isMobile ? 14 : 26;
-const TRAIL_LIFE = isMobile ? 14 : 30;
-const SHADOW_LIGHT = isMobile ? 6 : 12;
-const SHADOW_MEDIUM = isMobile ? 8 : 18;
-const SHADOW_HEAVY = isMobile ? 10 : 30;
+const STAR_COUNT = isMobile ? 25 : 45;
+const TRAIL_SIZE = isMobile ? 8 : 16;
+const TRAIL_LIFE = isMobile ? 8 : 18;
+const SHADOW_LIGHT = isMobile ? 3 : 6;
+const SHADOW_MEDIUM = isMobile ? 5 : 10;
+const SHADOW_HEAVY = isMobile ? 4 : 12;
 
 
 // =========================
@@ -138,6 +142,8 @@ let coinPops = [];
 let rainbowTrail = [];
 let powerUps = [];
 let stars = [];
+let punks = [];
+let gaps = [];
 
 
 // =========================
@@ -227,7 +233,7 @@ function drawLeaderboard() {
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.72)";
   ctx.strokeStyle = "#00ffff";
-  ctx.lineWidth = isMobile ? 4 : 6;
+  ctx.lineWidth = isMobile ? 3 : 4;
   ctx.shadowColor = "#00ffff";
   ctx.shadowBlur = SHADOW_HEAVY;
 
@@ -258,7 +264,7 @@ function drawLeaderboard() {
 
 
 // =========================
-// STARS
+// BACKGROUND ELEMENTS
 // =========================
 
 for (let i = 0; i < STAR_COUNT; i++) {
@@ -267,6 +273,17 @@ for (let i = 0; i < STAR_COUNT; i++) {
     y: Math.random() * groundY,
     size: Math.random() * 2 + 1,
     speed: Math.random() * 1.2 + 0.4
+  });
+}
+
+for (let i = 0; i < 2; i++) {
+  punks.push({
+    x: Math.random() * BASE_WIDTH,
+    y: 60 + Math.random() * 140,
+    width: 56,
+    height: 56,
+    speed: 0.35 + Math.random() * 0.35,
+    float: Math.random() * Math.PI * 2
   });
 }
 
@@ -421,6 +438,13 @@ function spawnObstacle() {
     });
   }
 
+  if (Math.random() < 0.18 && level >= 2) {
+    gaps.push({
+      x: canvas.width + 230,
+      width: 100 + Math.random() * 70
+    });
+  }
+
   nextSpawnTime = Math.max(75, 155 - level * 7 + Math.random() * 90);
 }
 
@@ -457,6 +481,7 @@ function levelUp() {
   obstacles = [];
   coins = [];
   powerUps = [];
+  gaps = [];
   spawnTimer = 0;
 }
 
@@ -564,12 +589,42 @@ function update() {
     frameTimer = 0;
   }
 
+  punks.forEach(p => {
+    p.x -= p.speed;
+    p.float += 0.03;
+    p.y += Math.sin(p.float) * 0.18;
+
+    if (p.x + p.width < 0) {
+      p.x = canvas.width + Math.random() * 400;
+      p.y = 60 + Math.random() * 140;
+    }
+  });
+
+  gaps.forEach(g => {
+    g.x -= currentSpeed;
+  });
+
+  gaps = gaps.filter(g => g.x + g.width > 0);
+
   player.velocityY += gravity;
   player.y += player.velocityY;
 
   const footOffset = 35;
+  const playerFeet = player.y + player.height - footOffset;
 
-  if (player.y + player.height - footOffset >= groundY) {
+  let overGap = false;
+
+  gaps.forEach(g => {
+    if (
+      player.x + 140 > g.x &&
+      player.x + 70 < g.x + g.width &&
+      playerFeet >= groundY - 8
+    ) {
+      overGap = true;
+    }
+  });
+
+  if (playerFeet >= groundY && !overGap) {
     if (player.jumping) triggerShake(3);
 
     player.y = groundY - player.height + footOffset;
@@ -577,6 +632,18 @@ function update() {
     player.jumping = false;
 
     startFootsteps();
+  }
+
+  if (overGap && playerFeet >= groundY - 5) {
+    player.jumping = true;
+  }
+
+  if (player.y > canvas.height) {
+    gameOver = true;
+    music.pause();
+    stopFootsteps();
+    playCrashSound();
+    saveScoreToLeaderboard();
   }
 
   if (supercharged) {
@@ -713,7 +780,7 @@ function update() {
         x: c.x + 20,
         y: c.y,
         size: c.highValue ? 16 : 11,
-        life: 24,
+        life: 20,
         text: "+" + value
       });
     }
@@ -731,7 +798,7 @@ function update() {
       p.collected = true;
 
       supercharged = true;
-      superchargeTimer = isMobile ? 220 : 300;
+      superchargeTimer = isMobile ? 180 : 260;
 
       playSuperchargeSound();
 
@@ -744,15 +811,15 @@ function update() {
         x: p.x + 20,
         y: p.y,
         size: 13,
-        life: 28,
+        life: 24,
         text: "+2 BOOST!"
       });
     }
   });
 
   coinPops.forEach(p => {
-    p.y -= 1.3;
-    p.size += 0.5;
+    p.y -= 1.2;
+    p.size += 0.35;
     p.life--;
   });
 
@@ -765,13 +832,13 @@ function update() {
 // =========================
 
 function drawRetroText(text, x, y, size = 14, flicker = false) {
-  const alpha = flicker ? 0.75 + Math.random() * 0.25 : 1;
+  const alpha = flicker ? 0.82 + Math.random() * 0.18 : 1;
 
   ctx.save();
 
   ctx.globalAlpha = alpha;
   ctx.shadowColor = "#ffffff";
-  ctx.shadowBlur = flicker ? SHADOW_LIGHT : 4;
+  ctx.shadowBlur = flicker ? SHADOW_LIGHT : 2;
   ctx.fillStyle = "#ffffff";
   ctx.font = `${size}px 'Press Start 2P', monospace`;
 
@@ -829,6 +896,22 @@ function draw() {
     ctx.fillRect(s.x, s.y, s.size, s.size);
   });
 
+  punks.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+
+    safeDrawImage(
+      punkImg,
+      p.x,
+      p.y,
+      p.width,
+      p.height,
+      "#222"
+    );
+
+    ctx.restore();
+  });
+
   ctx.save();
   ctx.shadowColor = "#ff00aa";
   ctx.shadowBlur = SHADOW_MEDIUM;
@@ -848,6 +931,21 @@ function draw() {
     ctx.stroke();
   }
 
+  gaps.forEach(g => {
+    ctx.clearRect(g.x, groundY - 2, g.width, 80);
+
+    ctx.save();
+
+    ctx.shadowColor = "#ff00ff";
+    ctx.shadowBlur = SHADOW_MEDIUM;
+    ctx.strokeStyle = "#ff00ff";
+    ctx.lineWidth = 2;
+
+    ctx.strokeRect(g.x, groundY - 2, g.width, 80);
+
+    ctx.restore();
+  });
+
   ctx.shadowBlur = 0;
 
   rainbowTrail.forEach(t => {
@@ -856,7 +954,7 @@ function draw() {
     ctx.globalAlpha = t.life / TRAIL_LIFE;
     ctx.fillStyle = `hsl(${t.hue},100%,60%)`;
     ctx.shadowColor = `hsl(${t.hue},100%,60%)`;
-    ctx.shadowBlur = SHADOW_MEDIUM;
+    ctx.shadowBlur = SHADOW_LIGHT;
 
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
@@ -869,7 +967,7 @@ function draw() {
     ctx.save();
 
     ctx.shadowColor = "#00ffff";
-    ctx.shadowBlur = SHADOW_MEDIUM;
+    ctx.shadowBlur = SHADOW_LIGHT;
 
     safeDrawImage(
       superchargeImg,
@@ -884,19 +982,19 @@ function draw() {
   });
 
   if (playerImg.complete && playerImg.naturalWidth > 0) {
-  const spriteWidth = playerImg.width / totalFrames;
+    const spriteWidth = playerImg.width / totalFrames;
 
-  ctx.drawImage(
-    playerImg,
-    frameX * spriteWidth,
-    0,
-    spriteWidth,
-    playerImg.height,
-    player.x,
-    player.y,
-    player.width,
-    player.height
-  );
+    ctx.drawImage(
+      playerImg,
+      frameX * spriteWidth,
+      0,
+      spriteWidth,
+      playerImg.height,
+      player.x,
+      player.y,
+      player.width,
+      player.height
+    );
   }
 
   obstacles.forEach(o => {
@@ -909,7 +1007,7 @@ function draw() {
     if (c.highValue) {
       ctx.save();
       ctx.shadowColor = "#FFD700";
-      ctx.shadowBlur = SHADOW_MEDIUM;
+      ctx.shadowBlur = SHADOW_LIGHT;
       safeDrawImage(img, c.x, c.y, c.width, c.height, "yellow");
       ctx.restore();
     } else {
