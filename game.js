@@ -884,23 +884,20 @@ function draw() {
   });
 
   if (playerImg.complete && playerImg.naturalWidth > 0) {
-  const spriteWid/Users/neuesgold/Desktop/crypto-runner-game/assets/player2.pngth = playerImg.width / totalFrames;
+    const spriteWidth = playerImg.width / totalFrames;
 
-  ctx.drawImage(
-    playerImg,
-    frameX * spriteWidth,
-    0,
-    spriteWidth,
-    playerImg.height,
-    player.x,
-    player.y,
-    player.width,
-    player.height
-  );
-} else {
-  ctx.fillStyle = "#00ffff";
-  ctx.fillRect(player.x, player.y, player.width, player.height);
-}
+    ctx.drawImage(
+      playerImg,
+      frameX * spriteWidth,
+      0,
+      spriteWidth,
+      playerImg.height,
+      player.x,
+      player.y,
+      player.width,
+      player.height
+    );
+  }
 
   obstacles.forEach(o => {
     safeDrawImage(o.image, o.x, o.y, o.width, o.height, "red");
