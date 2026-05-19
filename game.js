@@ -884,19 +884,19 @@ function draw() {
   });
 
   if (playerImg.complete && playerImg.naturalWidth > 0) {
-    const spriteWidth = playerImg.width / totalFrames;
+  const spriteWidth = playerImg.width / totalFrames;
 
-    ctx.drawImage(
-      playerImg,
-      frameX * spriteWidth,
-      0,
-      spriteWidth,
-      playerImg.height,
-      player.x,
-      player.y,
-      player.width,
-      player.height
-    );
+  ctx.drawImage(
+    playerImg,
+    frameX * spriteWidth,
+    0,
+    spriteWidth,
+    playerImg.height,
+    player.x,
+    player.y,
+    player.width,
+    player.height
+  );
   }
 
   obstacles.forEach(o => {
