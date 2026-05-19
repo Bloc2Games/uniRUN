@@ -1244,24 +1244,33 @@ function startGameWhenReady() {
   ];
 
   let loaded = 0;
+  let started = false;
+
+  function startGame() {
+    if (started) return;
+    started = true;
+    gameLoop();
+  }
 
   function assetDone() {
     loaded++;
 
     if (loaded >= imagesToLoad.length) {
-      gameLoop();
+      startGame();
     }
   }
 
   imagesToLoad.forEach(img => {
-    if (img.complete && img.naturalWidth > 0) {
+    if (img.complete) {
       assetDone();
     } else {
       img.onload = assetDone;
       img.onerror = assetDone;
     }
   });
+
+  // Safety fallback: start game even if one asset hangs
+  setTimeout(startGame, 1500);
 }
 
 startGameWhenReady();
-
