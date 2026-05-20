@@ -14,6 +14,9 @@ coinImg.src = "assets/coin.png";
 const fiveCoinImg = new Image();
 fiveCoinImg.src = "assets/fivecoin.png";
 
+const binanceCoinImg = new Image();
+binanceCoinImg.src = "assets/binancecoin.png";
+
 const superchargeImg = new Image();
 superchargeImg.src = "assets/supercharge.png";
 
@@ -138,6 +141,7 @@ let player = {
 
 let obstacles = [];
 let coins = [];
+let binanceCoins = [];
 let coinPops = [];
 let rainbowTrail = [];
 let powerUps = [];
@@ -424,6 +428,20 @@ function spawnObstacle() {
     });
   }
 
+  if (Math.random() < 0.18) {
+    const startX = canvas.width + 300;
+
+    binanceCoins.push({
+      x: startX,
+      y: 120 + Math.random() * 90,
+      width: 70,
+      height: 70,
+      value: 3,
+      floatAngle: Math.random() * Math.PI * 2,
+      collected: false
+    });
+  }
+
   if (Math.random() < 0.22) {
     const baseY = 105 + Math.random() * 90;
 
@@ -438,10 +456,10 @@ function spawnObstacle() {
     });
   }
 
-  if (Math.random() < 0.18 && level >= 2) {
+  if (Math.random() < 0.12 && level >= 3) {
     gaps.push({
-      x: canvas.width + 230,
-      width: 100 + Math.random() * 70
+      x: canvas.width + 260,
+      width: 45 + Math.random() * 35
     });
   }
 
@@ -480,6 +498,7 @@ function levelUp() {
 
   obstacles = [];
   coins = [];
+  binanceCoins = [];
   powerUps = [];
   gaps = [];
   spawnTimer = 0;
@@ -616,8 +635,8 @@ function update() {
 
   gaps.forEach(g => {
     if (
-      player.x + 140 > g.x &&
-      player.x + 70 < g.x + g.width &&
+      player.x + 120 > g.x &&
+      player.x + 90 < g.x + g.width &&
       playerFeet >= groundY - 8
     ) {
       overGap = true;
@@ -694,6 +713,13 @@ function update() {
     c.x -= currentSpeed;
   });
 
+  binanceCoins.forEach(c => {
+    c.x -= currentSpeed;
+    c.floatAngle += 0.05;
+    c.y += Math.sin(c.floatAngle) * 0.7;
+    c.x += Math.cos(c.floatAngle) * 0.6;
+  });
+
   powerUps.forEach(p => {
     p.x -= currentSpeed;
     p.floatAngle += 0.08;
@@ -710,6 +736,7 @@ function update() {
   });
 
   coins = coins.filter(c => c.x + c.width > 0 && !c.collected);
+  binanceCoins = binanceCoins.filter(c => c.x + c.width > 0 && !c.collected);
   powerUps = powerUps.filter(p => p.x + p.width > 0 && !p.collected);
 
   floorOffset -= currentSpeed;
@@ -782,6 +809,33 @@ function update() {
         size: c.highValue ? 16 : 11,
         life: 20,
         text: "+" + value
+      });
+    }
+  });
+
+  binanceCoins.forEach(c => {
+    const playerCoinHitbox = {
+      x: player.x + 65,
+      y: player.y + 50,
+      width: 105,
+      height: 105
+    };
+
+    if (isColliding(playerCoinHitbox, c)) {
+      c.collected = true;
+
+      coinsCollected += 3;
+      score += 15;
+
+      playCoinSound();
+      triggerShake(4);
+
+      coinPops.push({
+        x: c.x + 20,
+        y: c.y,
+        size: 14,
+        life: 24,
+        text: "+3 BNB"
       });
     }
   });
@@ -1013,6 +1067,24 @@ function draw() {
     } else {
       safeDrawImage(img, c.x, c.y, c.width, c.height, "yellow");
     }
+  });
+
+  binanceCoins.forEach(c => {
+    ctx.save();
+
+    ctx.shadowColor = "#F3BA2F";
+    ctx.shadowBlur = SHADOW_MEDIUM;
+
+    safeDrawImage(
+      binanceCoinImg,
+      c.x,
+      c.y,
+      c.width,
+      c.height,
+      "#F3BA2F"
+    );
+
+    ctx.restore();
   });
 
   coinPops.forEach(p => {
