@@ -105,6 +105,297 @@ resizeCanvas();
 
 
 // =========================
+// START MENU DOM OVERLAY
+// =========================
+
+let gameStarted = false;
+let showHtmlLeaderboard = false;
+
+function injectStartMenuStyles() {
+  const style = document.createElement("style");
+
+  style.textContent = `
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050014;
+      margin: 0;
+      padding: 0;
+    }
+
+    #startMenuOverlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050014;
+      z-index: 9999;
+    }
+
+    #startMenuOverlay.hidden {
+      display: none;
+    }
+
+    .menu-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      z-index: 1;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .menu-content {
+      position: relative;
+      z-index: 2;
+      width: min(90vw, 760px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform: translateY(-8vh);
+      gap: 10px;
+    }
+
+    .unicorn-placeholder {
+      width: clamp(95px, 10vw, 135px);
+      height: auto;
+      margin-bottom: -20;
+      filter: drop-shadow(0 0 22px #ff2bd6);
+      animation: floatLogo 2.2s ease-in-out infinite;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .menu-title {
+      width: clamp(280px, 34vw, 430px);
+      height: auto;
+      filter: drop-shadow(0 0 14px #ff2bd6);
+      margin-bottom: -150px;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .press-start {
+      width: clamp(150px, 14vw, 210px);
+      height: auto;
+      margin-bottom: -150px;
+      animation: pulseText 1.1s ease-in-out infinite;
+      filter: drop-shadow(0 0 8px #ffffff);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-drag: none;
+      transform-origin: center;
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    .press-start:hover {
+      transform: scale(1.04);
+      filter: brightness(1.2) drop-shadow(0 0 10px #ffffff);
+    }
+
+    .menu-button {
+      width: clamp(260px, 25vw, 370px);
+      height: auto;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-drag: none;
+      transform-origin: center;
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    .menu-button:hover {
+      transform: scale(1.035);
+      filter: brightness(1.15);
+    }
+
+    .menu-button:active {
+      transform: scale(0.98);
+    }
+
+    .play-button {
+      margin-bottom: -150px;
+    }
+
+    .leaderboard-button {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+
+    .leaderboard-panel-html {
+      display: none;
+      margin-top: 40px;
+      width: min(90vw, 620px);
+      background: rgba(0,0,0,0.78);
+      border: 3px solid #00ffff;
+      box-shadow: 0 0 18px #00ffff;
+      padding: 20px;
+      color: white;
+      font-family: 'Press Start 2P', monospace;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .leaderboard-panel-html.active {
+      display: block;
+    }
+
+    .leaderboard-panel-html h2 {
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .leaderboard-row-html {
+      display: grid;
+      grid-template-columns: 60px 1fr 90px;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0,255,255,0.2);
+    }
+
+    @keyframes floatLogo {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes pulseText {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(1.03); }
+    }
+
+    @media (max-width: 600px) {
+      .menu-content {
+        width: 94vw;
+        transform: translateY(-2vh);
+        gap: 2px;
+      }
+
+      .menu-button {
+        width: min(74vw, 320px);
+      }
+
+      .menu-title {
+        width: min(70vw, 340px);
+      }
+
+      .press-start {
+        width: min(48vw, 210px);
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function renderHtmlLeaderboard() {
+  const panel = document.getElementById("htmlLeaderboardPanel");
+  if (!panel) return;
+
+  const savedLeaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+
+  if (savedLeaderboard.length === 0) {
+    panel.innerHTML = `
+      <h2>GLOBAL LEADERBOARD</h2>
+      <div>NO SCORES YET</div>
+    `;
+    return;
+  }
+
+  let rows = "";
+
+  savedLeaderboard.slice(0, 5).forEach((entry, index) => {
+    rows += `
+      <div class="leaderboard-row-html">
+        <span>#${index + 1}</span>
+        <span>${entry.handle || "player.com"}</span>
+        <span>${entry.score || 0}</span>
+      </div>
+    `;
+  });
+
+  panel.innerHTML = `
+    <h2>GLOBAL LEADERBOARD</h2>
+    ${rows}
+  `;
+}
+
+function createStartMenuOverlay() {
+  injectStartMenuStyles();
+
+  const overlay = document.createElement("main");
+  overlay.id = "startMenuOverlay";
+
+  overlay.innerHTML = `
+    <img class="menu-bg" src="assets/menu-bg.png" alt="uniRUN background" />
+
+    <section class="menu-content">
+      <img class="unicorn-placeholder" src="assets/logo.png" alt="Logo" />
+      <img class="menu-title" src="assets/menu-title.png" alt="uniRUN" />
+      <img id="pressStartBtn" class="press-start" src="assets/menu-press-start.png" alt="Press Start" />
+      <img id="playBtn" class="menu-button play-button" src="assets/menu-play-button.png" alt="Play" />
+      <img id="leaderboardBtn" class="menu-button leaderboard-button" src="assets/menu-leaderboard-button.png" alt="Leaderboard" />
+      <div id="htmlLeaderboardPanel" class="leaderboard-panel-html"></div>
+    </section>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const playBtn = document.getElementById("playBtn");
+  const pressStartBtn = document.getElementById("pressStartBtn");
+  const leaderboardBtn = document.getElementById("leaderboardBtn");
+  const leaderboardPanel = document.getElementById("htmlLeaderboardPanel");
+
+  playBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    startGameFromMenu();
+  });
+
+  pressStartBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    startGameFromMenu();
+  });
+
+  leaderboardBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    showHtmlLeaderboard = !showHtmlLeaderboard;
+    renderHtmlLeaderboard();
+
+    if (showHtmlLeaderboard) {
+      leaderboardPanel.classList.add("active");
+    } else {
+      leaderboardPanel.classList.remove("active");
+    }
+  });
+}
+
+function startGameFromMenu() {
+  gameStarted = true;
+
+  const overlay = document.getElementById("startMenuOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
+  }
+
+  startMusic();
+}
+
+createStartMenuOverlay();
+
+
+// =========================
 // MOBILE PERFORMANCE
 // =========================
 
@@ -344,7 +635,7 @@ function playLevelUpSound() {
 }
 
 function startFootsteps() {
-  if (!player.jumping && !gameOver && !player.ducking && footstepSound.paused) {
+  if (!player.jumping && !gameOver && !player.ducking && gameStarted && footstepSound.paused) {
     footstepSound.play().catch(() => {});
   }
 }
@@ -525,12 +816,19 @@ function jump() {
 
 document.addEventListener("keydown", e => {
   if (e.code === "Space") {
+    if (!gameStarted) {
+      startGameFromMenu();
+      return;
+    }
+
     startMusic();
     startFootsteps();
     jump();
   }
 
   if (e.code === "ArrowDown" || e.code === "KeyS") {
+    if (!gameStarted) return;
+
     player.ducking = true;
     stopFootsteps();
   }
@@ -538,12 +836,16 @@ document.addEventListener("keydown", e => {
 
 document.addEventListener("keyup", e => {
   if (e.code === "ArrowDown" || e.code === "KeyS") {
+    if (!gameStarted) return;
+
     player.ducking = false;
     startFootsteps();
   }
 });
 
 document.addEventListener("click", () => {
+  if (!gameStarted) return;
+
   startMusic();
   startFootsteps();
   jump();
@@ -553,6 +855,9 @@ document.addEventListener(
   "touchstart",
   e => {
     e.preventDefault();
+
+    if (!gameStarted) return;
+
     startMusic();
     startFootsteps();
     jump();
@@ -566,6 +871,10 @@ document.addEventListener(
 // =========================
 
 function update() {
+  if (!gameStarted) {
+    return;
+  }
+
   if (gameOver) {
     flickerTimer++;
     stopFootsteps();
@@ -907,6 +1216,10 @@ function drawRetroText(text, x, y, size = 14, flicker = false) {
 // =========================
 
 function draw() {
+  if (!gameStarted) {
+    return;
+  }
+
   ctx.save();
 
   if (screenShake > 0) {
