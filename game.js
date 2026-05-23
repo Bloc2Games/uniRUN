@@ -60,7 +60,12 @@ const music = new Audio("assets/music.mp3");
 music.loop = true;
 music.volume = 0.22;
 
+const menuMusic = new Audio("assets/menu-music.mp3");
+menuMusic.loop = true;
+menuMusic.volume = 0.35;
+
 let musicStarted = false;
+let menuMusicStarted = false;
 
 
 // =========================
@@ -111,6 +116,19 @@ resizeCanvas();
 let gameStarted = false;
 let showHtmlLeaderboard = false;
 
+function startMenuMusic() {
+  if (!menuMusicStarted) {
+    menuMusic.play().catch(() => {});
+    menuMusicStarted = true;
+  }
+}
+
+function stopMenuMusic() {
+  menuMusic.pause();
+  menuMusic.currentTime = 0;
+  menuMusicStarted = false;
+}
+
 function injectStartMenuStyles() {
   const style = document.createElement("style");
 
@@ -127,6 +145,7 @@ function injectStartMenuStyles() {
       background: #050014;
       margin: 0;
       padding: 0;
+      touch-action: manipulation;
     }
 
     #startMenuOverlay {
@@ -156,6 +175,7 @@ function injectStartMenuStyles() {
       z-index: 1;
       user-select: none;
       -webkit-user-drag: none;
+      pointer-events: none;
     }
 
     .menu-content {
@@ -166,27 +186,30 @@ function injectStartMenuStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transform: translateY(-8vh);
-      gap: 10px;
+      transform: translateY(-2vh);
+      gap: 4px;
+      pointer-events: auto;
     }
 
     .unicorn-placeholder {
-      width: clamp(95px, 10vw, 135px);
+      width: clamp(130px, 13vw, 170px);
       height: auto;
-      margin-bottom: -20;
+      margin-bottom: -150;
       filter: drop-shadow(0 0 22px #ff2bd6);
       animation: floatLogo 2.2s ease-in-out infinite;
       user-select: none;
       -webkit-user-drag: none;
+      pointer-events: none;
     }
 
     .menu-title {
-      width: clamp(280px, 34vw, 430px);
+      width: clamp(300px, 30vw, 420px);
       height: auto;
       filter: drop-shadow(0 0 14px #ff2bd6);
       margin-bottom: -150px;
       user-select: none;
       -webkit-user-drag: none;
+      pointer-events: none;
     }
 
     .press-start {
@@ -200,6 +223,8 @@ function injectStartMenuStyles() {
       -webkit-user-drag: none;
       transform-origin: center;
       transition: transform 0.12s ease, filter 0.12s ease;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
 
     .press-start:hover {
@@ -215,6 +240,8 @@ function injectStartMenuStyles() {
       -webkit-user-drag: none;
       transform-origin: center;
       transition: transform 0.12s ease, filter 0.12s ease;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
 
     .menu-button:hover {
@@ -237,7 +264,7 @@ function injectStartMenuStyles() {
 
     .leaderboard-panel-html {
       display: none;
-      margin-top: 40px;
+      margin-top: -40px;
       width: min(90vw, 620px);
       background: rgba(0,0,0,0.78);
       border: 3px solid #00ffff;
@@ -277,22 +304,64 @@ function injectStartMenuStyles() {
     }
 
     @media (max-width: 600px) {
-      .menu-content {
-        width: 94vw;
-        transform: translateY(-2vh);
-        gap: 2px;
+      #startMenuOverlay {
+        align-items: flex-start;
+        padding-top: 14vh;
       }
 
-      .menu-button {
-        width: min(74vw, 320px);
+      .menu-content {
+        width: 94vw;
+        transform: translateY(0);
+        gap: 8px;
+      }
+
+      .unicorn-placeholder {
+        width: 90px;
+        margin-bottom: 4px;
       }
 
       .menu-title {
-        width: min(70vw, 340px);
+        width: 310px;
+        max-width: 82vw;
+        margin-bottom: 8px;
       }
 
       .press-start {
-        width: min(48vw, 210px);
+        width: 190px;
+        max-width: 56vw;
+        margin-bottom: 14px;
+      }
+
+      .menu-button {
+        width: 300px;
+        max-width: 86vw;
+        pointer-events: auto;
+        touch-action: manipulation;
+      }
+
+      .play-button {
+        margin-bottom: 12px;
+      }
+
+      .leaderboard-button {
+        margin-top: 0;
+      }
+
+      .leaderboard-panel-html {
+        margin-top: 8px;
+        width: 86vw;
+        max-height: 240px;
+        overflow-y: auto;
+        font-size: 9px;
+      }
+
+      .leaderboard-panel-html h2 {
+        font-size: 11px;
+      }
+
+      .leaderboard-row-html {
+        grid-template-columns: 40px 1fr 60px;
+        font-size: 8px;
       }
     }
   `;
@@ -363,10 +432,20 @@ function createStartMenuOverlay() {
     startGameFromMenu();
   });
 
+  playBtn.addEventListener("touchstart", e => {
+    e.stopPropagation();
+    startGameFromMenu();
+  }, { passive: true });
+
   pressStartBtn.addEventListener("click", e => {
     e.stopPropagation();
     startGameFromMenu();
   });
+
+  pressStartBtn.addEventListener("touchstart", e => {
+    e.stopPropagation();
+    startGameFromMenu();
+  }, { passive: true });
 
   leaderboardBtn.addEventListener("click", e => {
     e.stopPropagation();
@@ -379,10 +458,36 @@ function createStartMenuOverlay() {
       leaderboardPanel.classList.remove("active");
     }
   });
+
+  leaderboardBtn.addEventListener("touchstart", e => {
+    e.stopPropagation();
+    showHtmlLeaderboard = !showHtmlLeaderboard;
+    renderHtmlLeaderboard();
+
+    if (showHtmlLeaderboard) {
+      leaderboardPanel.classList.add("active");
+    } else {
+      leaderboardPanel.classList.remove("active");
+    }
+  }, { passive: true });
+
+  startMenuMusic();
+
+  document.body.addEventListener("click", () => {
+    startMenuMusic();
+  }, { once: true });
+
+  document.body.addEventListener("touchstart", () => {
+    startMenuMusic();
+  }, { once: true, passive: true });
 }
 
 function startGameFromMenu() {
+  if (gameStarted) return;
+
   gameStarted = true;
+
+  stopMenuMusic();
 
   const overlay = document.getElementById("startMenuOverlay");
   if (overlay) {
@@ -854,9 +959,9 @@ document.addEventListener("click", () => {
 document.addEventListener(
   "touchstart",
   e => {
-    e.preventDefault();
-
     if (!gameStarted) return;
+
+    e.preventDefault();
 
     startMusic();
     startFootsteps();
